@@ -554,4 +554,3 @@ class _CleanerPageState extends State<CleanerPage> with WidgetsBindingObserver {
     );
   }
 }
-
