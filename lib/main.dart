@@ -689,4 +689,193 @@ class _BoostPageState extends State<BoostPage> {
     setState(() => _clearingCache = true);
     final freed = await _system.clearOwnCache();
     if (!mounted) return;
-    setState(() => _clearingCa
+    setState(() => _clearingCache = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content:
+              Text('Cleared ${formatBytes(freed)} of GameCleaner\'s own cache.')),
+    );
+  }
+
+  late final List<BoostAction> _actions = [
+    BoostAction(
+      icon: Icons.apps_rounded,
+      title: 'Force stop apps',
+      subtitle:
+          'Opens your full app list. Tap any app, then "Force stop" to '
+          'shut it down completely.',
+      buttonLabel: 'Open apps list',
+      onTap: (_) => _openOrWarn(context, _system.openAllAppsSettings),
+    ),
+    BoostAction(
+      icon: Icons.battery_charging_full_rounded,
+      title: 'Battery usage',
+      subtitle:
+          'See exactly which apps are draining battery in the background.',
+      buttonLabel: 'Open battery usage',
+      onTap: (_) => _openOrWarn(context, _system.openBatteryUsage),
+    ),
+    BoostAction(
+      icon: Icons.network_check_rounded,
+      title: 'Background data',
+      subtitle:
+          'Restrict background data per app, or turn on Data Saver to '
+          'stop apps using the network when you\'re not in them.',
+      buttonLabel: 'Open data usage',
+      onTap: (_) => _openOrWarn(context, _system.openDataUsageSettings),
+    ),
+    BoostAction(
+      icon: Icons.storage_rounded,
+      title: 'Storage & cache',
+      subtitle:
+          'See total cache used across every app, with a system "Free up '
+          'space" option.',
+      buttonLabel: 'Open storage settings',
+      onTap: (_) => _openOrWarn(context, _system.openStorageSettings),
+    ),
+    BoostAction(
+      icon: Icons.wifi_rounded,
+      title: 'Wi-Fi settings',
+      subtitle: 'Check signal, switch networks, or forget a slow one.',
+      buttonLabel: 'Open Wi-Fi settings',
+      onTap: (_) => _openOrWarn(context, _system.openWifiSettings),
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Boost',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+        children: [
+          _infoBanner(),
+          const SizedBox(height: 8),
+          _cacheCard(),
+          const SizedBox(height: 4),
+          ..._actions.map(_actionCard),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: kSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline_rounded, color: kCyan, size: 20),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Android only lets you force-stop apps, clear their cache, '
+              'or manage their data with your own tap in system settings. '
+              'These shortcuts take you straight there.',
+              style: TextStyle(color: Colors.white70, fontSize: 12.5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cacheCard() {
+    return Card(
+      color: kSurface,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.delete_sweep_rounded, color: kGreen, size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('Clear GameCleaner\'s cache',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  SizedBox(height: 4),
+                  Text(
+                    'The only cache this app is allowed to clear directly '
+                    'is its own. Fully automatic, no settings screen.',
+                    style: TextStyle(fontSize: 12.5, color: Colors.white60),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: _clearingCache ? null : () => _clearOwnCache(context),
+              style: FilledButton.styleFrom(
+                backgroundColor: kGreen,
+                foregroundColor: Colors.black,
+              ),
+              child: _clearingCache
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.black),
+                    )
+                  : const Text('Clear'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _actionCard(BoostAction a) {
+    return Card(
+      color: kSurface,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(a.icon, color: kCyan, size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(a.title,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(
+                    a.subtitle,
+                    style:
+                        const TextStyle(fontSize: 12.5, color: Colors.white60),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton(
+                    onPressed: () => a.onTap(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: kCyan,
+                      side: const BorderSide(color: kCyan),
+                    ),
+                    child: Text(a.buttonLabel),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
