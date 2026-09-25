@@ -149,12 +149,6 @@ class SystemActionService {
 
   Future<void> openWifiSettings() =>
       _openAction('android.settings.WIFI_SETTINGS');
-  
-  Future<void> openDoNotDisturbSettings() =>
-      _openAction('android.settings.ZEN_MODE_SETTINGS');
-
-  Future<void> openBatterySaverSettings() =>
-      _openAction('android.settings.BATTERY_SAVER_SETTINGS');
 
   /// The only cache this app is allowed to touch is its own.
   Future<int> clearOwnCache() async {
@@ -745,24 +739,6 @@ class _BoostPageState extends State<BoostPage> {
       subtitle: 'Check signal, switch networks, or forget a slow one.',
       buttonLabel: 'Open Wi-Fi settings',
       onTap: (_) => _openOrWarn(context, _system.openWifiSettings),
-    ),
-    BoostAction(
-      icon: Icons.do_not_disturb_on_rounded,
-      title: 'Game Booster: Do Not Disturb',
-      subtitle:
-          'Silence notifications and calls before you start a game, so '
-          'nothing interrupts or slows the app down.',
-      buttonLabel: 'Open Do Not Disturb',
-      onTap: (_) => _openOrWarn(context, _system.openDoNotDisturbSettings),
-    ),
-    BoostAction(
-      icon: Icons.bolt_rounded,
-      title: 'Game Booster: Battery Saver off',
-      subtitle:
-          'Battery Saver limits background activity and can cap '
-          'performance. Turn it off before a gaming session.',
-      buttonLabel: 'Open Battery Saver',
-      onTap: (_) => _openOrWarn(context, _system.openBatterySaverSettings),
     ),
   ];
 
