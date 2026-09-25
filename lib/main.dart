@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:android_intent_plus/android_intent.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -123,6 +124,52 @@ class StorageScanner {
   }
 }
 
+/// Every action here opens a real Android system screen or touches only
+/// this app's own files. Nothing here silently "boosts" anything -
+/// no app on a non-rooted phone is allowed to force-stop other apps,
+/// clear their cache, or speed up the network. Those actions require
+/// the user's tap inside Android's own settings.
+class SystemActionService {
+  Future<void> _openAction(String action) async {
+    final intent = AndroidIntent(action: action);
+    await intent.launch();
+  }
+
+  Future<void> openAllAppsSettings() =>
+      _openAction('android.settings.APPLICATION_SETTINGS');
+
+  Future<void> openBatteryUsage() =>
+      _openAction('android.intent.action.POWER_USAGE_SUMMARY');
+
+  Future<void> openDataUsageSettings() =>
+      _openAction('android.settings.DATA_USAGE_SETTINGS');
+
+  Future<void> openStorageSettings() =>
+      _openAction('android.settings.INTERNAL_STORAGE_SETTINGS');
+
+  Future<void> openWifiSettings() =>
+      _openAction('android.settings.WIFI_SETTINGS');
+
+  /// The only cache this app is allowed to touch is its own.
+  Future<int> clearOwnCache() async {
+    final dir = await getTemporaryDirectory();
+    var freed = 0;
+    if (await dir.exists()) {
+      await for (final entity in dir.list(recursive: true)) {
+        if (entity is File) {
+          try {
+            freed += await entity.length();
+            await entity.delete();
+          } catch (_) {
+            // skip files that can't be removed
+          }
+        }
+      }
+    }
+    return freed;
+  }
+}
+
 // ──────────────────────────────── App ────────────────────────────────────
 
 class GameCleanerApp extends StatelessWidget {
@@ -149,10 +196,50 @@ class GameCleanerApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const CleanerPage(),
+      home: const RootPage(),
     );
   }
 }
+
+class RootPage extends StatefulWidget {
+  const RootPage({super.key});
+
+  @override
+  State<RootPage> createState() => _RootPageState();
+}
+
+class _RootPageState extends State<RootPage> {
+  int _tab = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _tab,
+        children: const [CleanerPage(), BoostPage()],
+      ),
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: kSurface,
+        selectedIndex: _tab,
+        onDestinationSelected: (i) => setState(() => _tab = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.cleaning_services_outlined),
+            selectedIcon: Icon(Icons.cleaning_services_rounded, color: kCyan),
+            label: 'Cleaner',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.speed_outlined),
+            selectedIcon: Icon(Icons.speed_rounded, color: kGreen),
+            label: 'Boost',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────── Cleaner tab ──────────────────────────────
 
 class CleanerPage extends StatefulWidget {
   const CleanerPage({super.key});
@@ -161,7 +248,8 @@ class CleanerPage extends StatefulWidget {
   State<CleanerPage> createState() => _CleanerPageState();
 }
 
-class _CleanerPageState extends State<CleanerPage> with WidgetsBindingObserver {
+class _CleanerPageState extends State<CleanerPage>
+    with WidgetsBindingObserver {
   final _permissions = PermissionService();
   final _scanner = StorageScanner();
 
@@ -554,3 +642,51 @@ class _CleanerPageState extends State<CleanerPage> with WidgetsBindingObserver {
     );
   }
 }
+
+// ──────────────────────────────── Boost tab ───────────────────────────────
+
+class BoostAction {
+  const BoostAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.buttonLabel,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String buttonLabel;
+  final Future<void> Function(BuildContext context) onTap;
+}
+
+class BoostPage extends StatefulWidget {
+  const BoostPage({super.key});
+
+  @override
+  State<BoostPage> createState() => _BoostPageState();
+}
+
+class _BoostPageState extends State<BoostPage> {
+  final _system = SystemActionService();
+  bool _clearingCache = false;
+
+  Future<void> _openOrWarn(
+      BuildContext context, Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Couldn't open that settings screen.")),
+      );
+    }
+  }
+
+  Future<void> _clearOwnCache(BuildContext context) async {
+    setState(() => _clearingCache = true);
+    final freed = await _system.clearOwnCache();
+    if (!mounted) return;
+    setState(() => _clearingCa
